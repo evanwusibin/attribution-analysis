@@ -1,0 +1,54 @@
+# 仅用于本项目的本地学习和开发验证；不得用于生产部署。
+x-local-env: &local-env
+  - path: .env.example
+    required: true
+  - path: .env
+    required: false
+
+services:
+  attribution-api:
+    build:
+      context: .
+      dockerfile: deploy/docker/backend.Dockerfile
+    env_file: *local-env
+    environment:
+      ATTRIBUTION_ENV: local
+      # 容器内访问宿主 MySQL（Docker Desktop 提供 host.docker.internal）；
+      # 凭据一律来自本地 .env，禁止明文入库（P0-3 修复）
+      ATTRIBUTION_DATABASE_URL: mysql://root:${MYSQL_PASSWORD:?set MYSQL_PASSWORD in local .env}@host.docker.internal:3307/attribution
+      ATTRIBUTION_RAG_MODE: remote
+      ATTRIBUTION_RAG_BASE_URL: http://host.docker.internal:8001
+      ATTRIBUTION_RAG_IMPORT_BASE_URL: http://host.docker.internal:8000
+      ATTRIBUTION_NL2SQL_MODE: remote
+      # 12_问数在宿主机监听 8012；容器内不能使用 127.0.0.1 指向宿主机
+      ATTRIBUTION_NL2SQL_BASE_URL: http://host.docker.internal:8012
+    ports: ["8002:8000"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/docker/frontend.Dockerfile
+    ports: ["5173:80"]
+    depends_on:
+      attribution-api:
+        condition: service_started
+
+  postgres:
+    profiles: ["integration"]
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: attribution
+      POSTGRES_USER: attribution
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in local .env}
+    ports: ["5432:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attribution -d attribution"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:

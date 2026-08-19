@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P-03 归因工作台 - 执行中</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; background: #f4f7fb; overflow: hidden; }
+.workbench { display: flex; height: 100vh; }
+.sidebar { width: 240px; background: #132638; color: #d9e7f1; padding: 24px 16px; flex-shrink: 0; }
+.sidebar h2 { font-size: 18px; font-weight: 700; margin-bottom: 32px; color: white; }
+.nav-item { padding: 12px 16px; margin: 4px 0; border-radius: 8px; cursor: pointer; font-size: 14px; transition: background .2s; }
+.nav-item:hover { background: #1b4656; }
+.nav-item.active { background: #1b5169; color: white; }
+.main { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow: hidden; }
+.header { margin-bottom: 16px; }
+.header h1 { font-size: 22px; font-weight: 700; color: #182e40; margin-bottom: 4px; }
+.header .meta { font-size: 13px; color: #637789; }
+.content { flex: 1; display: flex; gap: 24px; overflow: hidden; }
+.center { flex: 1; display: flex; flex-direction: column; background: white; border-radius: 14px; padding: 24px; overflow: hidden; }
+.flow-header { margin-bottom: 20px; }
+.flow-title { font-size: 18px; font-weight: 700; color: #182e40; margin-bottom: 4px; }
+.flow-hint { font-size: 12px; color: #687d8e; }
+.flow-container { flex: 1; overflow-y: auto; padding-bottom: 120px; }
+.nodes { display: flex; align-items: center; gap: 28px; margin-bottom: 32px; }
+.connector { width: 28px; height: 2px; border-top: 2px dashed #6f97b2; position: relative; }
+.connector::after { content: ''; position: absolute; right: -4px; top: -3px; width: 0; height: 0; border-left: 6px solid #6f97b2; border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+.node { width: 156px; padding: 16px; border-radius: 12px; cursor: pointer; transition: all .3s; flex-shrink: 0; }
+.node.done { background: #f3f8fa; border: 2px solid #689d91; }
+.node.running { background: linear-gradient(135deg, #0f89c5, #24c4c8); border: 2px solid #24c4c8; box-shadow: 0 0 20px rgba(36, 196, 200, 0.3); }
+.node.queued { background: #fbfcfd; border: 2px dashed #b7c7d2; }
+.node-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.node-icon { font-size: 14px; font-weight: 700; }
+.node.done .node-icon { color: #287f75; }
+.node.running .node-icon { color: white; }
+.node.queued .node-icon { color: #dbe4ea; }
+.node-title { font-size: 13px; font-weight: 700; }
+.node.done .node-title { color: #244154; }
+.node.running .node-title { color: white; }
+.node.queued .node-title { color: #5a7181; }
+.node-status { font-size: 11px; margin-bottom: 8px; }
+.node.done .node-status { color: #597282; }
+.node.running .node-status { color: #efffff; }
+.node.queued .node-status { color: #7b8f9c; }
+.node-detail { font-size: 11px; }
+.node.done .node-detail { color: #597282; }
+.node.running .node-detail { color: white; }
+.node.queued .node-detail { color: #97a8b3; }
+.task-panel { background: white; border: 1px solid #d7e3ec; border-radius: 12px; padding: 20px; margin-top: 24px; }
+.task-title { font-size: 14px; font-weight: 700; color: #182e40; margin-bottom: 4px; }
+.task-badge { display: inline-block; padding: 4px 12px; background: #d8f5f2; color: #087d75; border-radius: 12px; font-size: 11px; font-weight: 700; margin-bottom: 16px; }
+.task-row { display: flex; margin-bottom: 14px; font-size: 13px; }
+.task-label { width: 80px; color: #597282; flex-shrink: 0; }
+.task-value { color: #1f3a4d; flex: 1; }
+.input-container { position: absolute; bottom: 24px; left: 264px; right: 388px; }
+.input-box { background: white; border: 2px solid #d8e3ec; border-radius: 12px; padding: 14px 120px 14px 16px; font-size: 14px; width: 100%; }
+.input-box:focus { outline: none; border-color: #24c4c8; }
+.input-actions { position: absolute; right: 12px; bottom: 10px; display: flex; gap: 8px; }
+.btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; transition: all .2s; }
+.btn-cancel { background: #f3f8fa; color: #597282; }
+.btn-submit { background: #0f89c5; color: white; }
+.btn-submit:hover { background: #0d7ab0; }
+.right-panel { width: 340px; background: white; border-radius: 14px; padding: 24px; overflow-y: auto; flex-shrink: 0; }
+.right-title { font-size: 18px; font-weight: 700; color: #182e40; margin-bottom: 20px; }
+.detail-section { margin-bottom: 20px; }
+.detail-heading { font-size: 13px; font-weight: 700; color: #667e8f; margin-bottom: 8px; }
+.detail-text { font-size: 13px; color: #1f3a4d; line-height: 1.6; }
+.detail-list { list-style: none; }
+.detail-list li { font-size: 13px; color: #1f3a4d; margin-bottom: 6px; padding-left: 16px; position: relative; }
+.detail-list li::before { content: ''; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #91a9ba; }
+</style>
+</head>
+<body>
+<div class="workbench">
+<aside class="sidebar">
+<h2>归因工作台</h2>
+<div class="nav-item">工作台</div>
+<div class="nav-item">会话</div>
+<div class="nav-item active">分析轨迹</div>
+<div class="nav-item">Evidence</div>
+<div class="nav-item">导出</div>
+</aside>
+<main class="main">
+<header class="header">
+<h1>华东区域交付延迟归因</h1>
+<p class="meta">Case A-2026-032 · 数据时间窗 2026-01 至 2026-03 · correlation_id 已生成</p>
+</header>
+<div class="content">
+<div class="center">
+<div class="flow-header">
+<div class="flow-title">分析轨迹 / 可执行流程</div>
+<div class="flow-hint">虚线流动表示当前调度方向 · 点击节点可查看子任务</div>
+</div>
+<div class="flow-container">
+<div class="nodes">
+<div class="node done" data-node="1">
+<div class="node-header"><span class="node-icon">✓</span><span class="node-title">输入边界</span></div>
+<div class="node-status">已完成 2/2</div>
+<div class="node-detail">权限 · 时间窗</div>
+</div>
+<div class="connector"></div>
+<div class="node done" data-node="2">
+<div class="node-header"><span class="node-icon">✓</span><span class="node-title">RAG 检索</span></div>
+<div class="node-status">已完成 4/4</div>
+<div class="node-detail">来源已标准化</div>
+</div>
+<div class="connector"></div>
+<div class="node running" data-node="3">
+<div class="node-header"><span class="node-icon">◉</span><span class="node-title">受控查询</span></div>
+<div class="node-status">运行中 2/4</div>
+<div class="node-detail">参数 · 语义视图</div>
+</div>
+<div class="connector"></div>
+<div class="node queued" data-node="4">
+<div class="node-header"><span class="node-icon">○</span><span class="node-title">证据评估</span></div>
+<div class="node-status">等待 0/4</div>
+<div class="node-detail">冲突 · 规则版本</div>
+</div>
+<div class="connector"></div>
+<div class="node queued" data-node="5">
+<div class="node-header"><span class="node-icon">○</span><span class="node-title">流式结果</span></div>
+<div class="node-status">等待 0/4</div>
+<div class="node-detail">引用 · 审计</div>
+</div>
+</div>
+<div class="task-panel" id="taskPanel">
+<div class="task-title">当前节点：受控查询 · Task #03</div>
+<span class="task-badge">RUNNING</span>
+<div class="task-row"><span class="task-label">任务</span><span class="task-value">将归因问题映射至只读语义视图</span></div>
+<div class="task-row"><span class="task-label">子任务</span><span class="task-value">✓ 意图映射模板  →  ◉ 绑定时间/区域参数  →  ○ 调用只读语义视图  →  ○ 写入审计</span></div>
+<div class="task-row"><span class="task-label">输入</span><span class="task-value">已确认业务维度、时间窗与权限范围</span></div>
+<div class="task-row"><span class="task-label">输出</span><span class="task-value">参数已校验；结果集尚未读取；行数/超时限制已生效</span></div>
+</div>
+</div>
+<div class="input-container">
+<input class="input-box" placeholder="继续追问或描述新场景…" />
+<div class="input-actions">
+<button class="btn btn-cancel">取消</button>
+<button class="btn btn-submit">发送</button>
+</div>
+</div>
+</div>
+<aside class="right-panel">
+<h3 class="right-title">当前节点详情</h3>
+<div class="detail-section">
+<div class="detail-heading">受控查询 · RUNNING</div>
+<div class="detail-text">Task #03 / 02 of 04</div>
+</div>
+<div class="detail-section">
+<div class="detail-heading">子任务状态</div>
+<ul class="detail-list">
+<li>✓ 映射业务意图至模板</li>
+<li>◉ 绑定时间、区域参数</li>
+<li>○ 调用只读语义视图</li>
+<li>○ 写入 ToolExecution 审计</li>
+</ul>
+</div>
+<div class="detail-section">
+<div class="detail-heading">输入</div>
+<div class="detail-text">对象：客户群体<br>周期：2026-08<br>约束：只读、白名单、无凭据</div>
+</div>
+<div class="detail-section">
+<div class="detail-heading">当前产出</div>
+<div class="detail-text">参数：已校验<br>结果集：尚未读取<br>上限：行数/超时已配置</div>
+</div>
+<div class="detail-section">
+<div class="detail-heading">状态切换</div>
+<div class="detail-text">完成后激活"证据评估"；超时则保留已有事件并进入部分成功。</div>
+</div>
+</aside>
+</div>
+</main>
+</div>
+<script>
+const nodes = [
+  { id: 1, title: '输入边界', state: 'done', task: '边界校验 · Task #01', badge: 'COMPLETED', subtasks: '✓ 校验权限  →  ✓ 确认时间窗', input: '用户问题与初始范围', output: 'correlation_id 与场景标签', detail: { title: '输入边界 · COMPLETED', meta: 'Task #01 / 01 of 04', subtasks: ['✓ 解析会话/Case', '✓ 校验权限/场景/时间窗', '✓ 生成 correlation_id'], input: '用户：华东区域交付延迟归因<br>周期：2026-01 至 2026-03', output: 'correlation_id：A-2026-032<br>场景：客户流失归因<br>权限：只读、已审计', switch: '完成后激活"RAG 检索"。' } },
+  { id: 2, title: 'RAG 检索', state: 'done', task: 'RAG 检索 · Task #02', badge: 'COMPLETED', subtasks: '✓ 白名单检索  →  ✓ 版本筛选  →  ✓ 来源标准化  →  ✓ 审计落点', input: '已确认的业务问题与范围', output: '命中 8 条；来源定位完成', detail: { title: 'RAG 检索 · COMPLETED', meta: 'Task #02 / 02 of 04', subtasks: ['✓ 白名单检索语料 v3', '✓ 版本筛选与重排', '✓ 来源标准化', '✓ 写入审计事件'], input: '对象：客户群体<br>周期：2026-08<br>约束：白名单、版本化', output: '命中：8 条<br>可定位来源：8 条<br>语料版本：v3', switch: '完成后激活"受控查询"。' } },
+  { id: 3, title: '受控查询', state: 'running', task: '受控查询 · Task #03', badge: 'RUNNING', subtasks: '✓ 意图映射模板  →  ◉ 绑定时间/区域参数  →  ○ 调用只读语义视图  →  ○ 写入审计', input: '已确认业务维度、时间窗与权限范围', output: '参数已校验；结果集尚未读取；行数/超时限制已生效', detail: { title: '受控查询 · RUNNING', meta: 'Task #03 / 02 of 04', subtasks: ['✓ 映射业务意图至模板', '◉ 绑定时间、区域参数', '○ 调用只读语义视图', '○ 写入 ToolExecution 审计'], input: '对象：客户群体<br>周期：2026-08<br>约束：只读、白名单、无凭据', output: '参数：已校验<br>结果集：尚未读取<br>上限：行数/超时已配置', switch: '完成后激活"证据评估"；超时则保留已有事件并进入部分成功。' } },
+  { id: 4, title: '证据评估', state: 'queued', task: '证据评估 · Task #04', badge: 'QUEUED', subtasks: '○ 分级  →  ○ 冲突/缺失检测  →  ○ 规则版本绑定  →  ○ 人工复核判断', input: '待"受控查询"完成', output: '暂无输出', detail: { title: '证据评估 · QUEUED', meta: 'Task #04 / 00 of 04', subtasks: ['○ 证据分级', '○ 冲突/缺失检测', '○ 规则版本绑定', '○ 人工复核判断'], input: '待"受控查询"完成后读取', output: '暂无', switch: 'MISSING 或仅 MOCK 时停在人工复核出口；完成后激活"流式结果"。' } },
+  { id: 5, title: '流式结果', state: 'queued', task: '流式结果 · Task #05', badge: 'QUEUED', subtasks: '○ 结构化事件  →  ○ 结论草案  →  ○ 引用绑定  →  ○ 审计落点', input: '待"证据评估"完成', output: '暂无输出', detail: { title: '流式结果 · QUEUED', meta: 'Task #05 / 00 of 04', subtasks: ['○ 结构化事件', '○ 结论草案', '○ 引用绑定', '○ 审计落点'], input: '待"证据评估"完成后读取', output: '暂无', switch: '完成后进入 P-07 已完成态；关键缺失强制人工复核。' } }
+];
+document.querySelectorAll('.node').forEach((el, i) => {
+  el.addEventListener('click', () => {
+    const data = nodes[i];
+    document.getElementById('taskPanel').innerHTML = `
+      <div class="task-title">当前节点：${data.title} · ${data.task.split('·')[1]}</div>
+      <span class="task-badge">${data.badge}</span>
+      <div class="task-row"><span class="task-label">任务</span><span class="task-value">将归因问题映射至只读语义视图</span></div>
+      <div class="task-row"><span class="task-label">子任务</span><span class="task-value">${data.subtasks}</span></div>
+      <div class="task-row"><span class="task-label">输入</span><span class="task-value">${data.input}</span></div>
+      <div class="task-row"><span class="task-label">输出</span><span class="task-value">${data.output}</span></div>
+    `;
+    document.querySelector('.right-panel').innerHTML = `
+      <h3 class="right-title">当前节点详情</h3>
+      <div class="detail-section"><div class="detail-heading">${data.detail.title}</div><div class="detail-text">${data.detail.meta}</div></div>
+      <div class="detail-section"><div class="detail-heading">子任务状态</div><ul class="detail-list">${data.detail.subtasks.map(s => `<li>${s}</li>`).join('')}</ul></div>
+      <div class="detail-section"><div class="detail-heading">输入</div><div class="detail-text">${data.detail.input}</div></div>
+      <div class="detail-section"><div class="detail-heading">当前产出</div><div class="detail-text">${data.detail.output}</div></div>
+      <div class="detail-section"><div class="detail-heading">状态切换</div><div class="detail-text">${data.detail.switch}</div></div>
+    `;
+  });
+});
+</script>
+</body>
+</html>

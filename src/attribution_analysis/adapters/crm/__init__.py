@@ -1,0 +1,1 @@
+"""CRM pre-sales adapter package."""
