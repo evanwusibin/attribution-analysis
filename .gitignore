@@ -41,3 +41,7 @@ verify_security.py
 verify_xss.py
 rep_test.html
 .idea/
+
+# 3D 模型与处理产物（体积过大，不入仓库）
+*.blend
+ImageToStl.com_*.jpg
