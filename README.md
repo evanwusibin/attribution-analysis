@@ -67,6 +67,10 @@ curl -b /tmp/cookies.txt -X POST http://127.0.0.1:8002/api/v1/after-sales/diagno
 
 `data/attribution_demo.db` 为模拟库；适配器只读，NL2SQL 不接受任意 SQL。
 
+## 复习指南
+
+完整项目复习见 [复习指南.md](复习指南.md)（六层架构/三色证据/13 工具/六段输出/Docker/面试高频问答）
+
 ## 许可证
 
 MIT — 见 [LICENSE](LICENSE)
