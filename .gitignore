@@ -45,3 +45,5 @@ rep_test.html
 # 3D 模型与处理产物（体积过大，不入仓库）
 *.blend
 ImageToStl.com_*.jpg
+
+humanpending.md
