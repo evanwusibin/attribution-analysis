@@ -1,6 +1,7 @@
 # Attribution Analysis · 经营归因分析系统
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Tests](https://github.com/evanwusibin/attribution-analysis/actions/workflows/tests.yml/badge.svg)](https://github.com/evanwusibin/attribution-analysis/actions/workflows/tests.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](pyproject.toml)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-green)](src/attribution_analysis/api)
 [![Docker](https://img.shields.io/badge/docker-compose-ready-blue)](compose.yaml)
